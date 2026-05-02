@@ -1,0 +1,70 @@
+.voice-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all var(--transition);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.voice-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-accent);
+  background: rgba(124,58,237,0.1);
+}
+
+.voice-btn-active {
+  color: #ef4444;
+  border-color: rgba(239,68,68,0.4);
+  background: rgba(239,68,68,0.1);
+  box-shadow: 0 0 20px rgba(239,68,68,0.15);
+}
+
+.voice-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--transition);
+}
+
+.pulsing { animation: mic-pulse 0.8s ease-in-out infinite alternate; }
+
+@keyframes mic-pulse {
+  from { transform: scale(1); }
+  to   { transform: scale(1.2); }
+}
+
+/* Ripple rings for active state */
+.voice-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1.5px solid rgba(239,68,68,0.4);
+  animation: voice-ring-anim 1.5s ease-out infinite;
+  pointer-events: none;
+}
+.voice-ring-2 { animation-delay: 0.5s; }
+
+@keyframes voice-ring-anim {
+  0%   { transform: scale(1);   opacity: 1; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+
+.voice-unsupported {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
