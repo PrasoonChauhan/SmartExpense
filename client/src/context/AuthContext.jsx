@@ -22,7 +22,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const loginWithGoogle = () => {
-    window.location.href = '/api/auth/google';
+    const apiBase = import.meta.env.VITE_API_URL || '/api';
+    window.location.href = `${apiBase}/auth/google`;
   };
 
   const handleCallback = async (token) => {
