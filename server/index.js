@@ -22,10 +22,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ── CORS ───────────────────────────────────────────────────────────────────────
+const clientUrl = (process.env.CLIENT_URL || '').replace(/\/$/, '');
 const allowedOrigins = [
   'http://localhost:5173',
-  process.env.CLIENT_URL,
-].filter(Boolean);
+  clientUrl,
+  'https://prasoonsmartexpense.vercel.app',
+].filter(Boolean).map(origin => origin.replace(/\/$/, ''));
 
 app.use(
   cors({
@@ -33,11 +35,23 @@ app.use(
       // Allow requests with no origin (e.g. mobile apps, curl, Postman)
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
-      callback(new Error(`CORS blocked: ${origin}`));
+      
+      console.warn(`CORS blocked for origin: ${origin}. Allowed origins: ${allowedOrigins.join(', ')}`);
+      callback(null, false);
     },
     credentials: true,
   })
 );
+
+// ── Health Check (always available — before session/passport) ──────────────────
+let dbConnected = false;
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'Smart Expense API is running 🚀',
+    db: dbConnected ? 'connected' : 'connecting',
+  });
+});
 
 // ── Session ────────────────────────────────────────────────────────────────────
 app.use(
@@ -66,11 +80,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/ai', aiRoutes);
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Smart Expense API is running 🚀' });
-});
-
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
@@ -82,18 +91,34 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Internal Server Error', error: err.message });
 });
 
-// ── Database + Server ──────────────────────────────────────────────────────────
+// ── Server Start ───────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
+const HOST = '0.0.0.0'; // Required for Render — must bind to all interfaces
 
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('✅ MongoDB connected');
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error('❌ MongoDB connection error:', err.message);
-    process.exit(1);
-  });
+// Start HTTP server immediately so Render health checks pass right away
+const server = app.listen(PORT, HOST, () => {
+  console.log(`🚀 Server listening on ${HOST}:${PORT}`);
+});
+
+// ── MongoDB Connection with Retry ──────────────────────────────────────────────
+const connectDB = async (retries = 5, delay = 5000) => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      await mongoose.connect(process.env.MONGO_URI);
+      dbConnected = true;
+      console.log('✅ MongoDB connected');
+      return;
+    } catch (err) {
+      console.error(`❌ MongoDB connection attempt ${attempt}/${retries} failed: ${err.message}`);
+      if (attempt < retries) {
+        console.log(`⏳ Retrying in ${delay / 1000}s...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        delay = Math.min(delay * 2, 30000); // Exponential backoff, max 30s
+      } else {
+        console.error('❌ All MongoDB connection attempts failed. Server will continue running without DB.');
+      }
+    }
+  }
+};
+
+connectDB();

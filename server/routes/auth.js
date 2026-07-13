@@ -12,6 +12,8 @@ const generateToken = (userId) => {
   });
 };
 
+const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/$/, '');
+
 // ── Google OAuth ───────────────────────────────────────────────────────────────
 
 // @route   GET /api/auth/google
@@ -27,11 +29,11 @@ router.get(
 // @desc    Google OAuth callback — redirects to frontend with JWT
 router.get(
   '/google/callback',
-  passport.authenticate('google', { failureRedirect: `${process.env.CLIENT_URL}/login?error=oauth_failed` }),
+  passport.authenticate('google', { failureRedirect: `${clientUrl}/login?error=oauth_failed` }),
   (req, res) => {
     const token = generateToken(req.user._id);
     // Redirect to client with token in query (client stores in localStorage)
-    res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${token}`);
+    res.redirect(`${clientUrl}/auth/callback?token=${token}`);
   }
 );
 
