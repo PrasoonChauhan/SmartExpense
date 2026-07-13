@@ -50,7 +50,6 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     message: 'Smart Expense API is running 🚀',
     db: dbConnected ? 'connected' : 'connecting',
-    allowedOrigins,
   });
 });
 
